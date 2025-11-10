@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'db/database_helper.dart';
+import 'models/order.dart';
+import 'models/order_item.dart';
+import 'package:intl/intl.dart';
+
+
 
 void main() {
   runApp(BitefulApp());
@@ -18,7 +24,7 @@ class BitefulApp extends StatelessWidget {
   }
 }
 
-// Biteful welcome splash creen
+// Biteful welcome splash screen
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -236,7 +242,6 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // Home screen
-
 class HomeContent extends StatelessWidget {
   final List<Restaurant> restaurants = [
     Restaurant(
@@ -289,6 +294,27 @@ class HomeContent extends StatelessWidget {
     ),
   ];
 
+  Future<void> _createOrderForRestaurant(BuildContext context, String restaurantName) async {
+    final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+    final order = Order(
+      restaurantName: restaurantName,
+      total: 14.99,
+      status: 'Placed',
+      createdAt: now,
+    );
+
+    final items = [
+      OrderItem(itemName: 'Sample Item A', quantity: 1, unitPrice: 9.99).toMap(),
+      OrderItem(itemName: 'Sample Item B', quantity: 1, unitPrice: 5.00).toMap(),
+    ];
+
+    final id = await DatabaseHelper.instance.insertOrder(order.toMap(), items);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Order #$id created for $restaurantName')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -323,7 +349,53 @@ class HomeContent extends StatelessWidget {
               ),
             ),
           ),
-          
+
+          // Frequently Ordered Section
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Frequently Ordered',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue[800],
+                  ),
+                ),
+                SizedBox(height: 8),
+                SizedBox(
+                  height: 60,
+                  child: FutureBuilder<List<Map<String, dynamic>>>(
+                    future: DatabaseHelper.instance.getFrequentlyOrderedItems(limit: 6),
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return Center(child: CircularProgressIndicator(strokeWidth: 2));
+                      }
+                      final items = snapshot.data!;
+                      if (items.isEmpty) {
+                        return Text('No suggestions yet.', style: TextStyle(color: Colors.grey));
+                      }
+                      return ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: items.length,
+                        separatorBuilder: (_, __) => SizedBox(width: 8),
+                        itemBuilder: (context, i) {
+                          final it = items[i];
+                          return Chip(
+                            label: Text('${it['itemName']} (${it['totalQuantity']})'),
+                            backgroundColor: Colors.blue[50],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           // Categories Section
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -392,11 +464,11 @@ class HomeContent extends StatelessWidget {
                 crossAxisCount: 2,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 0.8,
+                childAspectRatio: 0.68,
               ),
               itemCount: restaurants.length,
               itemBuilder: (context, index) {
-                return _buildRestaurantCard(restaurants[index]);
+                return _buildRestaurantCard(context, restaurants[index]);
               },
             ),
           ),
@@ -435,7 +507,7 @@ class HomeContent extends StatelessWidget {
     );
   }
 
-  Widget _buildRestaurantCard(Restaurant restaurant) {
+  Widget _buildRestaurantCard(BuildContext context, Restaurant restaurant) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -447,29 +519,30 @@ class HomeContent extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
             child: Container(
-              height: 120,
+              height: 80,
               width: double.infinity,
               color: Colors.grey[200],
               child: Image.network(
                 restaurant.imageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  return Icon(Icons.restaurant, size: 50, color: Colors.grey);
+                  return Icon(Icons.restaurant, size: 36, color: Colors.grey);
                 },
               ),
             ),
           ),
-          
+
           Padding(
-            padding: EdgeInsets.all(8),
+            padding: EdgeInsets.all(6),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   restaurant.name,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                    fontSize: 14,
                     color: Colors.blue[800],
                   ),
                   maxLines: 1,
@@ -480,37 +553,47 @@ class HomeContent extends StatelessWidget {
                   restaurant.cuisine,
                   style: TextStyle(
                     color: Colors.grey[600],
-                    fontSize: 12,
+                    fontSize: 11,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: 6),
                 Row(
                   children: [
-                    Icon(Icons.star, color: Colors.amber, size: 16),
+                    Icon(Icons.star, color: Colors.amber, size: 14),
                     SizedBox(width: 4),
-                    Text(
-                      restaurant.rating.toString(),
-                      style: TextStyle(fontSize: 12),
-                    ),
+                    Text(restaurant.rating.toString(), style: TextStyle(fontSize: 11)),
                     SizedBox(width: 8),
-                    Icon(Icons.access_time, color: Colors.grey, size: 16),
+                    Icon(Icons.access_time, color: Colors.grey, size: 14),
                     SizedBox(width: 4),
-                    Text(
-                      restaurant.deliveryTime,
-                      style: TextStyle(fontSize: 12),
-                    ),
+                    Text(restaurant.deliveryTime, style: TextStyle(fontSize: 11)),
                   ],
                 ),
-                SizedBox(height: 4),
-                Text(
-                  restaurant.price,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
+                SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      restaurant.price,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    SizedBox(
+                      width: 110,
+                      height: 34,
+                      child: ElevatedButton(
+                        onPressed: () => _createOrderForRestaurant(context, restaurant.name),
+                        child: Text('Order', style: TextStyle(fontSize: 12)),
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 4),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -522,43 +605,110 @@ class HomeContent extends StatelessWidget {
 }
 
 // Orders
+class OrdersScreen extends StatefulWidget {
+  @override
+  _OrdersScreenState createState() => _OrdersScreenState();
+}
 
-class OrdersScreen extends StatelessWidget {
+class _OrdersScreenState extends State<OrdersScreen> {
+  List<Order> _orders = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    final rows = await DatabaseHelper.instance.getOrders();
+    setState(() {
+      _orders = rows.map((r) => Order.fromMap(r)).toList();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.receipt_long,
-            size: 80,
-            color: Colors.blue[400],
-          ),
-          SizedBox(height: 20),
-          Text(
-            'Orders Screen',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.blue[600],
+    return Scaffold(
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+              ElevatedButton.icon(
+              onPressed: () async {
+                await DatabaseHelper.instance.clearAllOrders();
+                await _loadOrders();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('All orders cleared')),
+                );
+              },
+              icon: Icon(Icons.delete_forever),
+              label: Text('Clear All Orders'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             ),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Order history will be implemented here',
-            style: TextStyle(
-              color: Colors.grey[500],
-              fontSize: 16,
+
+            SizedBox(height: 16),
+            Expanded(
+              child: _orders.isEmpty
+                  ? Center(child: Text('No orders yet.'))
+                  : ListView.builder(
+                itemCount: _orders.length,
+                itemBuilder: (context, index) {
+                  final o = _orders[index];
+                  final raw = o.createdAt;
+                  DateTime? parsed;
+                  try {
+                    parsed = DateTime.tryParse(raw)?.toLocal();
+                  } catch (_) {
+                    parsed = null;
+                  }
+                  final niceTime = parsed != null
+                      ? DateFormat('MMM d, yyyy • h:mm a').format(parsed)
+                      : raw;
+
+                  return Card(
+                    child: ListTile(
+                      title: Text(o.restaurantName),
+                      subtitle: Text('${o.status} • $niceTime'),
+                      trailing: Text('\$${o.total.toStringAsFixed(2)}'),
+
+                      onTap: () async {
+                        final items = await DatabaseHelper.instance
+                            .getOrderItems(o.id!);
+                        showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            title: Text('Order Items'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: items
+                                  .map((it) => ListTile(
+                                title: Text(it['itemName']),
+                                subtitle: Text(
+                                    'x${it['quantity']} - \$${it['unitPrice']}'),
+                              ))
+                                  .toList(),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(context),
+                                child: Text('Close'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
-
 // User profile
 
 class ProfileScreen extends StatelessWidget {
