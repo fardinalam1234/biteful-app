@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../theme.dart';
+import 'package:go_router/go_router.dart';
+
 
 class CartPage extends StatelessWidget {
   const CartPage({super.key});
@@ -13,7 +15,15 @@ class CartPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Cart'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.receipt_long),
+            tooltip: 'My Orders',
+            onPressed: () => context.push('/orders'),
+          ),
+        ],
       ),
+
       body: cart.items.isEmpty
           ? const Center(
               child: Text(
@@ -116,7 +126,31 @@ class CartPage extends StatelessWidget {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () async {
+                        final cart = context.read<CartProvider>();
+
+                        if (cart.items.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Your cart is empty!')),
+                          );
+                          return;
+                        }
+
+
+                        final orderId = await cart.placeOrder(
+                          restaurantName: 'Sample Restaurant',
+                        );
+
+                        if (orderId != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Order #$orderId placed successfully!')),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Failed to save order!')),
+                          );
+                        }
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: kPrimary,
                         foregroundColor: Colors.white,
@@ -134,6 +168,7 @@ class CartPage extends StatelessWidget {
                       ),
                     ),
                   ),
+
                 ],
               ),
             ),

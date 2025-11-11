@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
+import 'pages/orders_page.dart';
 import 'pages/splash_page.dart';
 import 'pages/home_page.dart';
 import 'pages/restaurant_page.dart';
@@ -22,5 +22,6 @@ GoRouter buildRouter() => GoRouter(
         ),
         GoRoute(path: '/cart', builder: (_, __) => const CartPage()),
         GoRoute(path: '/track', builder: (_, __) => const TrackPage()),
+        GoRoute(path: '/orders', builder: (_, __) => const OrdersPage(),),
       ],
     );

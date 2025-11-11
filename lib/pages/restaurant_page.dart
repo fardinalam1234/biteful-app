@@ -329,15 +329,6 @@ class RestaurantPage extends StatelessWidget {
                         // ✅ Add cart entry
                         context.read<CartProvider>().addItem(item, qty: qty);
 
-                        // ✅ Snackbar
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text("${item.title} added to cart ($qty)"),
-                            behavior: SnackBarBehavior.floating,
-                            duration: const Duration(seconds: 2),
-                          ),
-                        );
-
                         // ✅ Mock Notification
                         MockNotification.show(
                           context,
