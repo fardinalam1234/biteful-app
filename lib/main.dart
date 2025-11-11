@@ -4,7 +4,20 @@ import 'models/order.dart';
 import 'models/order_item.dart';
 import 'package:intl/intl.dart';
 
+// 1. Add MenuItem Model
+class MenuItem {
+  final String name;
+  final String description;
+  final double price;
+  final String imageUrl;
 
+  MenuItem({
+    required this.name,
+    required this.description,
+    required this.price,
+    required this.imageUrl,
+  });
+}
 
 void main() {
   runApp(BitefulApp());
@@ -159,59 +172,63 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: _currentIndex == 0
           ? AppBar(
-              backgroundColor: Colors.blue,
-              title: Container(
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Text(
-                  'Biteful',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 24,
-                    fontFamily: 'ComicNeue',
-                    color: Colors.white,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
-              actions: [
-                IconButton(
-                  icon: Icon(Icons.shopping_cart, color: Colors.white),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: Icon(Icons.person, color: Colors.white),
-                  onPressed: () {
-                    setState(() {
-                      _currentIndex = 2; // Switch to profile
-                    });
-                  },
-                ),
-              ],
-            )
-          : AppBar(
-              backgroundColor: Colors.blue,
-              title: Container(
-                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: Text(
-                  _currentIndex == 1 ? 'My Orders' : 'My Profile',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 20,
-                    fontFamily: 'ComicNeue',
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              centerTitle: true,
+        backgroundColor: Colors.blue,
+        title: Container(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Text(
+            'Biteful',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 24,
+              fontFamily: 'ComicNeue',
+              color: Colors.white,
+              letterSpacing: 1.2,
             ),
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.shopping_cart, color: Colors.white),
+            onPressed: () {
+              setState(() {
+                _currentIndex = 1;
+              });
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.person, color: Colors.white),
+            onPressed: () {
+              setState(() {
+                _currentIndex = 2; // Switch to profile
+              });
+            },
+          ),
+        ],
+      )
+          : AppBar(
+        backgroundColor: Colors.blue,
+        title: Container(
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Text(
+            _currentIndex == 1 ? 'My Orders' : 'My Profile',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 20,
+              fontFamily: 'ComicNeue',
+              color: Colors.white,
+            ),
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -293,27 +310,6 @@ class HomeContent extends StatelessWidget {
       price: '\$\$\$',
     ),
   ];
-
-  Future<void> _createOrderForRestaurant(BuildContext context, String restaurantName) async {
-    final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
-    final order = Order(
-      restaurantName: restaurantName,
-      total: 14.99,
-      status: 'Placed',
-      createdAt: now,
-    );
-
-    final items = [
-      OrderItem(itemName: 'Sample Item A', quantity: 1, unitPrice: 9.99).toMap(),
-      OrderItem(itemName: 'Sample Item B', quantity: 1, unitPrice: 5.00).toMap(),
-    ];
-
-    final id = await DatabaseHelper.instance.insertOrder(order.toMap(), items);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Order #$id created for $restaurantName')),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -423,9 +419,9 @@ class HomeContent extends StatelessWidget {
               ],
             ),
           ),
-          
+
           SizedBox(height: 20),
-          
+
           // Featured Restaurants
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
@@ -453,7 +449,7 @@ class HomeContent extends StatelessWidget {
               ],
             ),
           ),
-          
+
           // Restaurants Grid
           Padding(
             padding: EdgeInsets.all(16),
@@ -586,7 +582,15 @@ class HomeContent extends StatelessWidget {
                       width: 110,
                       height: 34,
                       child: ElevatedButton(
-                        onPressed: () => _createOrderForRestaurant(context, restaurant.name),
+                        // Navigates to the new detail screen
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RestaurantDetailScreen(restaurant: restaurant),
+                            ),
+                          );
+                        },
                         child: Text('Order', style: TextStyle(fontSize: 12)),
                         style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.symmetric(vertical: 4),
@@ -604,6 +608,264 @@ class HomeContent extends StatelessWidget {
   }
 }
 
+// 3. New Restaurant Detail Screen
+class RestaurantDetailScreen extends StatefulWidget {
+  final Restaurant restaurant;
+
+  RestaurantDetailScreen({required this.restaurant});
+
+  @override
+  _RestaurantDetailScreenState createState() => _RestaurantDetailScreenState();
+}
+
+class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
+  // A simple dummy menu for demonstration
+  late List<MenuItem> _menu;
+  Map<MenuItem, int> _cart = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMenu();
+  }
+
+  void _loadMenu() {
+    // Generate a simple dummy menu based on the restaurant name
+    switch (widget.restaurant.name) {
+      case 'Burger King':
+        _menu = [
+          MenuItem(name: 'Whopper', description: 'Flame-grilled beef patty', price: 6.99, imageUrl: 'https://picsum.photos/100/100?random=10'),
+          MenuItem(name: 'Fries', description: 'Crispy golden fries', price: 2.49, imageUrl: 'https://picsum.photos/100/100?random=11'),
+          MenuItem(name: 'Onion Rings', description: 'Crispy onion rings', price: 3.99, imageUrl: 'https://picsum.photos/100/100?random=12'),
+        ];
+        break;
+      case 'Sushi 24/7':
+        _menu = [
+          MenuItem(name: 'Salmon Roll', description: 'Fresh salmon with rice', price: 8.50, imageUrl: 'https://picsum.photos/100/100?random=20'),
+          MenuItem(name: 'Tuna Nigiri', description: 'Tuna on sushi rice', price: 9.99, imageUrl: 'https://picsum.photos/100/100?random=21'),
+          MenuItem(name: 'Miso Soup', description: 'Traditional Japanese soup', price: 3.00, imageUrl: 'https://picsum.photos/100/100?random=22'),
+        ];
+        break;
+      default:
+        _menu = [
+          MenuItem(name: 'Default Dish 1', description: 'A tasty placeholder meal', price: 10.00, imageUrl: 'https://picsum.photos/100/100?random=30'),
+          MenuItem(name: 'Default Dish 2', description: 'Another popular placeholder', price: 12.50, imageUrl: 'https://picsum.photos/100/100?random=31'),
+        ];
+    }
+  }
+
+  void _updateCart(MenuItem item, int quantity) {
+    setState(() {
+      if (quantity > 0) {
+        _cart[item] = quantity;
+      } else {
+        _cart.remove(item);
+      }
+    });
+  }
+
+  double get _totalPrice {
+    double total = 0.0;
+    _cart.forEach((item, quantity) {
+      total += item.price * quantity;
+    });
+    return total;
+  }
+
+  Future<void> _placeOrder() async {
+    if (_cart.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Your cart is empty!')),
+      );
+      return;
+    }
+
+    final now = DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now());
+    final total = _totalPrice;
+
+    // Create Order object
+    final order = Order(
+      restaurantName: widget.restaurant.name,
+      total: total,
+      status: 'Placed',
+      createdAt: now,
+    );
+
+    // Create OrderItem list
+    final items = _cart.entries.map((entry) {
+      return OrderItem(
+        itemName: entry.key.name,
+        quantity: entry.value,
+        unitPrice: entry.key.price,
+      ).toMap();
+    }).toList();
+
+    // Insert into DB
+    final id = await DatabaseHelper.instance.insertOrder(order.toMap(), items);
+
+    // Show confirmation and navigate back
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Order #$id placed for ${widget.restaurant.name}. Total: \$${total.toStringAsFixed(2)}')),
+    );
+    Navigator.pop(context); // Go back to HomeScreen
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasItems = _cart.isNotEmpty;
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.blue,
+        title: Text(
+          widget.restaurant.name,
+          style: TextStyle(color: Colors.white, fontFamily: 'ComicNeue'),
+        ),
+        iconTheme: IconThemeData(color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Restaurant Header Image/Details
+            Container(
+              height: 150,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: NetworkImage(widget.restaurant.imageUrl),
+                  fit: BoxFit.cover,
+                  colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.3), BlendMode.darken),
+                ),
+              ),
+              alignment: Alignment.bottomLeft,
+              padding: EdgeInsets.all(16),
+              child: Text(
+                widget.restaurant.cuisine,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+
+            Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                'Menu Items',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue[800],
+                ),
+              ),
+            ),
+
+            // Menu List
+            ListView.builder(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: _menu.length,
+              itemBuilder: (context, index) {
+                final item = _menu[index];
+                return _buildMenuItem(item);
+              },
+            ),
+            SizedBox(height: hasItems ? 100 : 20),
+          ],
+        ),
+      ),
+      // Floating Cart/Order Button
+      bottomSheet: hasItems
+          ? Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 10,
+              offset: Offset(0, -5),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Total:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                Text(
+                  '\$${_totalPrice.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue,
+                  ),
+                ),
+              ],
+            ),
+            ElevatedButton.icon(
+              onPressed: _placeOrder,
+              icon: Icon(Icons.shopping_cart),
+              label: Text('Place Order (${_cart.length} items)'),
+              style: ElevatedButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+      )
+          : null,
+    );
+  }
+
+  Widget _buildMenuItem(MenuItem item) {
+    final quantity = _cart[item] ?? 0;
+    return ListTile(
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          item.imageUrl,
+          width: 50,
+          height: 50,
+          fit: BoxFit.cover,
+        ),
+      ),
+      title: Text(item.name, style: TextStyle(fontWeight: FontWeight.bold)),
+      subtitle: Text(item.description, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: Icon(Icons.remove_circle_outline, color: quantity > 0 ? Colors.blue : Colors.grey),
+            onPressed: quantity > 0 ? () => _updateCart(item, quantity - 1) : null,
+          ),
+          Text(
+            quantity.toString(),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          IconButton(
+            icon: Icon(Icons.add_circle_outline, color: Colors.blue),
+            onPressed: () => _updateCart(item, quantity + 1),
+          ),
+        ],
+      ),
+      onTap: () => _updateCart(item, quantity + 1),
+    );
+  }
+}
+
 // Orders
 class OrdersScreen extends StatefulWidget {
   @override
@@ -613,17 +875,22 @@ class OrdersScreen extends StatefulWidget {
 class _OrdersScreenState extends State<OrdersScreen> {
   List<Order> _orders = [];
 
+  // 4. Update lifecycle to refresh orders on screen activation
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // This ensures orders are loaded/refreshed when navigating back to this screen
     _loadOrders();
   }
 
   Future<void> _loadOrders() async {
     final rows = await DatabaseHelper.instance.getOrders();
-    setState(() {
-      _orders = rows.map((r) => Order.fromMap(r)).toList();
-    });
+    // Only update state if the widget is still mounted
+    if (mounted) {
+      setState(() {
+        _orders = rows.map((r) => Order.fromMap(r)).toList();
+      });
+    }
   }
 
   @override
@@ -633,7 +900,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         padding: EdgeInsets.all(16),
         child: Column(
           children: [
-              ElevatedButton.icon(
+            ElevatedButton.icon(
               onPressed: () async {
                 await DatabaseHelper.instance.clearAllOrders();
                 await _loadOrders();
@@ -657,6 +924,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   final raw = o.createdAt;
                   DateTime? parsed;
                   try {
+                    // Try parsing as UTC and convert to local time
                     parsed = DateTime.tryParse(raw)?.toLocal();
                   } catch (_) {
                     parsed = null;
@@ -711,7 +979,90 @@ class _OrdersScreenState extends State<OrdersScreen> {
 }
 // User profile
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
+  @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  // Dummy state variables for the profile details
+  String _name = 'John Doe';
+  String _email = 'john.doe@email.com';
+  String _phone = '+1 (555) 123-4567';
+
+  void _showEditProfileDialog() {
+    // Controllers initialized with current state values
+    TextEditingController nameController = TextEditingController(text: _name);
+    TextEditingController emailController = TextEditingController(text: _email);
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: Text('Edit Profile'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Name',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+                SizedBox(height: 15),
+                TextField(
+                  controller: emailController,
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                SizedBox(height: 15),
+                // Phone number is often read-only or requires more complex verification
+                Text('Phone: $_phone (Read-only for demo)', style: TextStyle(color: Colors.grey[700])),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            ElevatedButton(
+              child: Text('Save'),
+              onPressed: () {
+                // Update state variables
+                setState(() {
+                  _name = nameController.text;
+                  _email = emailController.text;
+                });
+
+                // Display a success message
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Profile details updated!'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+
+                Navigator.of(context).pop();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -744,7 +1095,7 @@ class ProfileScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'John Doe',
+                            _name, // Use state variable
                             style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -753,7 +1104,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'john.doe@email.com',
+                            _email, // Use state variable
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 16,
@@ -761,7 +1112,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            '+1 (555) 123-4567',
+                            _phone, // Use state variable
                             style: TextStyle(
                               color: Colors.grey[600],
                             ),
@@ -771,48 +1122,48 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     IconButton(
                       icon: Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () {},
+                      onPressed: _showEditProfileDialog, // Call the new dialog function
                     ),
                   ],
                 ),
               ),
             ),
             SizedBox(height: 20),
-            
+
             // Account Section
             _buildSectionTitle('Account'),
             _buildProfileOption(Icons.person_outline, 'Personal Information'),
             _buildProfileOption(Icons.location_on_outlined, 'Addresses'),
             _buildProfileOption(Icons.payment, 'Payment Methods'),
             _buildProfileOption(Icons.notifications_outlined, 'Notifications'),
-            
+
             SizedBox(height: 20),
-            
+
             // Order History Section
             _buildSectionTitle('Order History'),
             _buildProfileOption(Icons.history, 'Past Orders'),
             _buildProfileOption(Icons.favorite_border, 'Favorite Restaurants'),
             _buildProfileOption(Icons.star_border, 'Reviews & Ratings'),
-            
+
             SizedBox(height: 20),
-            
+
             // Support Section
             _buildSectionTitle('Support'),
             _buildProfileOption(Icons.help_outline, 'Help Center'),
             _buildProfileOption(Icons.chat_bubble_outline, 'Contact Support'),
             _buildProfileOption(Icons.security, 'Privacy Policy'),
             _buildProfileOption(Icons.description, 'Terms of Service'),
-            
+
             SizedBox(height: 20),
-            
+
             // App Settings Section
             _buildSectionTitle('App Settings'),
             _buildProfileOption(Icons.language, 'Language'),
             _buildProfileOption(Icons.dark_mode_outlined, 'Dark Mode'),
             _buildProfileOption(Icons.notifications_active, 'Push Notifications'),
-            
+
             SizedBox(height: 30),
-            
+
             // Logout Button
             Container(
               width: double.infinity,
